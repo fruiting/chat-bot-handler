@@ -23,7 +23,7 @@ type writerSuite struct {
 
 	producer *mock.MockSyncProducer
 
-	writer *Writer
+	writer *Producer
 }
 
 func TestWriterSuite(t *testing.T) {
@@ -45,7 +45,7 @@ func (s *writerSuite) SetupTest() {
 
 	s.producer = mock.NewMockSyncProducer(ctrl)
 
-	s.writer = NewWriter(s.producer)
+	s.writer = NewProducer(s.producer)
 }
 
 func (s *writerSuite) TestPushErr() {

@@ -117,5 +117,5 @@ func initKafkaProducer(broker string, maxRetry int, maxMessageBytes int) (intern
 		return nil, fmt.Errorf("failed init kafka client: %w", err)
 	}
 
-	return kafka.NewWriter(producer), nil
+	return kafka.NewProducer(producer), nil
 }

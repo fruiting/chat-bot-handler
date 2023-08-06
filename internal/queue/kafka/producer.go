@@ -9,18 +9,18 @@ import (
 	"github.com/IBM/sarama"
 )
 
-type Writer struct {
+type Producer struct {
 	producer sarama.SyncProducer
 }
 
-func NewWriter(producer sarama.SyncProducer) *Writer {
-	return &Writer{
+func NewProducer(producer sarama.SyncProducer) *Producer {
+	return &Producer{
 		producer: producer,
 	}
 }
 
-func (w *Writer) Push(topic string, msg []byte, now time.Time) error {
-	_, _, err := w.producer.SendMessage(&sarama.ProducerMessage{
+func (p *Producer) Push(topic string, msg []byte, now time.Time) error {
+	_, _, err := p.producer.SendMessage(&sarama.ProducerMessage{
 		Topic:     topic,
 		Value:     sarama.StringEncoder(msg),
 		Timestamp: now,
