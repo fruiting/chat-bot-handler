@@ -1,7 +1,5 @@
 package kafka
 
-//go:generate mockgen -source=writer.go -destination=./writer_mock.go -package=kafka
-
 import (
 	"fmt"
 	"time"
