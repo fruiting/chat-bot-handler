@@ -13,7 +13,6 @@ import (
 
 const parseJobsTopic string = "job-parser.parse-jobs.v1"
 
-// ChatBotHandler handles with chat bot
 type ChatBotHandler interface {
 	FindChatIdAndText(bodyRequest []byte) (ChatId, Text, error)
 	SendMessage(chatId ChatId, text Text) error

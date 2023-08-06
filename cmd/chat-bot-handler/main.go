@@ -82,7 +82,6 @@ func fatalJsonLog(msg string, err error) string {
 	)
 }
 
-// initLogger создает и настраивает новый экземпляр логгера
 func initLogger(logLevel string, isLogJson bool) (*zap.Logger, error) {
 	lvl := zap.InfoLevel
 	err := lvl.UnmarshalText([]byte(logLevel))
