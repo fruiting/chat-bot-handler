@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/IBM/sarama"
 	"github.com/mailru/easyjson"
 )
 
@@ -17,7 +16,7 @@ const parseJobsTopic string = "job-parser.parse-jobs.v1"
 // ChatBotHandler handles with chat bot
 type ChatBotHandler interface {
 	FindChatIdAndText(bodyRequest []byte) (ChatId, Text, error)
-	SendMessage(chatId ChatId, text string) error
+	SendMessage(chatId ChatId, text Text) error
 }
 
 type ChatBotProcessor struct {
@@ -94,7 +93,7 @@ func (p *ChatBotProcessor) Process(body []byte) error {
 		return InvalidCommandErr
 	}
 
-	err = p.validateCommand(chatBotCommand)
+	err = chatBotCommand.validateCommand()
 	if err != nil {
 		err = p.handleInvalidCommand(chatId)
 		if err != nil {
@@ -104,7 +103,7 @@ func (p *ChatBotProcessor) Process(body []byte) error {
 		return InvalidCommandErr
 	}
 
-	err = p.handler.SendMessage(chatId, msg)
+	err = p.handler.SendMessage(chatId, Text(msg))
 	if err != nil {
 		p.chatBotCommands.clearCommandFromMap(chatId)
 		return fmt.Errorf("can't send message for building command: %w", err)
@@ -131,21 +130,9 @@ func (p *ChatBotProcessor) pushCommandIntoQueue(chatBotCommand *ChatBotCommandIn
 		return fmt.Errorf("can't marshal chat bot command")
 	}
 
-	err = p.queueProducer.Push(&sarama.ProducerMessage{
-		Topic:     parseJobsTopic,
-		Value:     sarama.StringEncoder(jsonCommand),
-		Timestamp: time.Now(),
-	})
+	err = p.queueProducer.Push(parseJobsTopic, jsonCommand, time.Now())
 	if err != nil {
 		return fmt.Errorf("can't process command: %w", err)
-	}
-
-	return nil
-}
-
-func (p *ChatBotProcessor) validateCommand(chatBotCommand *ChatBotCommandInfo) error {
-	if chatBotCommand.Command != ParseJobsInfoChatBotCommand {
-		return InvalidCommandErr
 	}
 
 	return nil
@@ -154,7 +141,7 @@ func (p *ChatBotProcessor) validateCommand(chatBotCommand *ChatBotCommandInfo) e
 func (p *ChatBotProcessor) handleInvalidCommand(chatId ChatId) error {
 	p.chatBotCommands.clearCommandFromMap(chatId)
 
-	err := p.handler.SendMessage(chatId, InvalidCommandErr.Error())
+	err := p.handler.SendMessage(chatId, Text(InvalidCommandErr.Error()))
 	if err != nil {
 		return fmt.Errorf("can't send message to choose parser")
 	}

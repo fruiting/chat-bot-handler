@@ -34,6 +34,14 @@ type ChatBotCommandInfo struct {
 	IsReady   bool
 }
 
+func (c *ChatBotCommandInfo) validateCommand() error {
+	if c.Command != ParseJobsInfoChatBotCommand {
+		return InvalidCommandErr
+	}
+
+	return nil
+}
+
 type chatBotCommands struct {
 	commands map[ChatId]*ChatBotCommandInfo
 }

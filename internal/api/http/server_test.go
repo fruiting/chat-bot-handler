@@ -1,12 +1,15 @@
 package http
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"fruiting/chat-bot-handler/internal"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
@@ -20,6 +23,7 @@ type serverSuite struct {
 	testErr error
 	writer  *httptest.ResponseRecorder
 
+	chatBotHandler   *internal.MockChatBotHandler
 	chatBotProcessor *MockchatBotProcessor
 
 	server *Server
@@ -36,9 +40,10 @@ func (s *serverSuite) SetupTest() {
 	s.writer = httptest.NewRecorder()
 
 	ctrl := gomock.NewController(s.T())
+	s.chatBotHandler = internal.NewMockChatBotHandler(ctrl)
 	s.chatBotProcessor = NewMockchatBotProcessor(ctrl)
 
-	s.server = NewServer(":8080", s.chatBotProcessor, true, zap.New(core))
+	s.server = NewServer(":8080", s.chatBotHandler, s.chatBotProcessor, true, zap.New(core))
 }
 
 func (s *serverSuite) TestHandleChatBotProcessErr() {
@@ -65,7 +70,7 @@ func (s *serverSuite) TestHandleChatBotOk() {
 	)
 }
 
-func (s *serverSuite) TestPong() {
+func (s *serverSuite) TestPing() {
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/ping", nil)
 
 	s.server.ping(s.writer, req)
@@ -73,5 +78,114 @@ func (s *serverSuite) TestPong() {
 	body, err := io.ReadAll(s.writer.Body)
 	s.Equal(http.StatusOK, s.writer.Code)
 	s.Equal("PONG", string(body))
+	s.Nil(err)
+}
+
+func (s *serverSuite) TestSendMessageUnmarshalErr() {
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/send-message/", nil)
+
+	s.server.sendMessage(s.writer, req)
+
+	body, err := io.ReadAll(s.writer.Body)
+	s.Equal(http.StatusInternalServerError, s.writer.Code)
+	s.Equal("", string(body))
+	s.Nil(err)
+}
+
+func (s *serverSuite) TestSendMessageChatIdIsRequiredErr() {
+	type rawReq struct {
+		ChatId int64  `json:"chat_id"`
+		Text   string `json:"text"`
+	}
+	jsonReq, err := json.Marshal(rawReq{
+		Text: "text",
+	})
+	s.Nil(err)
+
+	buf := bytes.Buffer{}
+	buf.Write(jsonReq)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/send-message/", &buf)
+
+	s.server.sendMessage(s.writer, req)
+
+	body, err := io.ReadAll(s.writer.Body)
+	s.Equal(http.StatusBadRequest, s.writer.Code)
+	s.Equal("chat_id is required", string(body))
+	s.Nil(err)
+}
+
+func (s *serverSuite) TestSendMessageTextIsRequiredErr() {
+	type rawReq struct {
+		ChatId int64  `json:"chat_id"`
+		Text   string `json:"text"`
+	}
+	jsonReq, err := json.Marshal(rawReq{
+		ChatId: 1,
+	})
+	s.Nil(err)
+
+	buf := bytes.Buffer{}
+	buf.Write(jsonReq)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/send-message/", &buf)
+
+	s.server.sendMessage(s.writer, req)
+
+	body, err := io.ReadAll(s.writer.Body)
+	s.Equal(http.StatusBadRequest, s.writer.Code)
+	s.Equal("text is required", string(body))
+	s.Nil(err)
+}
+
+func (s *serverSuite) TestSendMessageErr() {
+	chatId := int64(1)
+	text := "123"
+
+	type rawReq struct {
+		ChatId int64  `json:"chat_id"`
+		Text   string `json:"text"`
+	}
+	jsonReq, err := json.Marshal(rawReq{
+		ChatId: chatId,
+		Text:   text,
+	})
+	s.Nil(err)
+
+	buf := bytes.Buffer{}
+	buf.Write(jsonReq)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/send-message/", &buf)
+	s.chatBotHandler.EXPECT().SendMessage(internal.ChatId(chatId), internal.Text(text)).Return(s.testErr)
+
+	s.server.sendMessage(s.writer, req)
+
+	body, err := io.ReadAll(s.writer.Body)
+	s.Equal(http.StatusInternalServerError, s.writer.Code)
+	s.Equal("", string(body))
+	s.Nil(err)
+}
+
+func (s *serverSuite) TestSendMessageOk() {
+	chatId := int64(1)
+	text := "123"
+
+	type rawReq struct {
+		ChatId int64  `json:"chat_id"`
+		Text   string `json:"text"`
+	}
+	jsonReq, err := json.Marshal(rawReq{
+		ChatId: chatId,
+		Text:   text,
+	})
+	s.Nil(err)
+
+	buf := bytes.Buffer{}
+	buf.Write(jsonReq)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/send-message/", &buf)
+	s.chatBotHandler.EXPECT().SendMessage(internal.ChatId(chatId), internal.Text(text)).Return(nil)
+
+	s.server.sendMessage(s.writer, req)
+
+	body, err := io.ReadAll(s.writer.Body)
+	s.Equal(http.StatusOK, s.writer.Code)
+	s.Equal("", string(body))
 	s.Nil(err)
 }

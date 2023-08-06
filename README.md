@@ -1,5 +1,5 @@
 # chat-bot-handler
 
-This is an MVP version of a service to handle 
+This is an MVP version of a service to handle chat bot commands
 
-fruiting
+by fruiting

@@ -23,6 +23,7 @@ using(){
   echo "Commands list:"
   echo "  init_web_hook_local - inits web hook for local development"
   echo "  stop_web_hook_local - stops web hook for local development"
+  echo "  unit_coverage - calculates unit tests coverage"
 }
 
 command="$1"

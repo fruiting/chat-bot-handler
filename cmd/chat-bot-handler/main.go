@@ -38,7 +38,7 @@ func main() {
 	httpClient := &http.Client{}
 	httpInternalClient := httpinternal.NewClient(httpClient)
 
-	kafkaProducer, err := initKafkaProducer([]string{""})
+	kafkaProducer, err := initKafkaProducer(cfg.KafkaBroker, cfg.KafkaMaxRetry, cfg.KafkaMaxMessageBytes)
 	if err != nil {
 		logger.Fatal("can't init kafka producer", zap.Error(err))
 	}
@@ -50,7 +50,7 @@ func main() {
 	)
 	chatBotProcessor := internal.NewChatBotProcessor(chatBotHandler, kafkaProducer)
 
-	httpServer := httpinternal.NewServer(cfg.HttpListen, chatBotProcessor, cfg.EnablePprof, logger)
+	httpServer := httpinternal.NewServer(cfg.HttpListen, chatBotHandler, chatBotProcessor, cfg.EnablePprof, logger)
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -103,14 +103,20 @@ func initLogger(logLevel string, isLogJson bool) (*zap.Logger, error) {
 	return opts.Build()
 }
 
-func initKafkaProducer(brokers []string) (internal.QueueProducer, error) {
-	config := sarama.NewConfig()
-	config.Producer.Partitioner = sarama.NewRandomPartitioner
-	config.Producer.RequiredAcks = sarama.WaitForAll
-	producer, err := sarama.NewSyncProducer(brokers, config)
+func initKafkaProducer(broker string, maxRetry int, maxMessageBytes int) (internal.QueueProducer, error) {
+	kafkaCfg := sarama.NewConfig()
+	kafkaCfg.Producer.Retry.Max = maxRetry
+	kafkaCfg.Producer.RequiredAcks = sarama.WaitForAll
+	kafkaCfg.Producer.Return.Successes = true
+	kafkaCfg.Producer.MaxMessageBytes = maxMessageBytes
+
+	producer, err := sarama.NewSyncProducer(
+		[]string{broker},
+		kafkaCfg,
+	)
 	if err != nil {
-		return nil, fmt.Errorf("can't init kafka producer: %w", err)
+		return nil, fmt.Errorf("failed init kafka client: %w", err)
 	}
 
-	return kafka.NewKafkaWriter(producer), nil
+	return kafka.NewWriter(producer), nil
 }

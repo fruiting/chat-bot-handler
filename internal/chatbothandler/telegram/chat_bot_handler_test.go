@@ -53,7 +53,7 @@ func (s *chatBotHandlerSuite) TestSendMessagePostErr() {
 	s.Equal(fmt.Errorf("can't send message: %w", s.testErr), err)
 }
 
-func (s *chatBotHandlerSuite) TestSendMessagePosOk() {
+func (s *chatBotHandlerSuite) TestSendMessagePostOk() {
 	s.client.
 		EXPECT().
 		Post(

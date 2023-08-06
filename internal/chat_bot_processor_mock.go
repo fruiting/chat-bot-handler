@@ -50,7 +50,7 @@ func (mr *MockChatBotHandlerMockRecorder) FindChatIdAndText(bodyRequest interfac
 }
 
 // SendMessage mocks base method.
-func (m *MockChatBotHandler) SendMessage(chatId ChatId, text string) error {
+func (m *MockChatBotHandler) SendMessage(chatId ChatId, text Text) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendMessage", chatId, text)
 	ret0, _ := ret[0].(error)

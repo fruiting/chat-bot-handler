@@ -56,10 +56,10 @@ func (h *ChatBotHandler) FindChatIdAndText(bodyRequest []byte) (internal.ChatId,
 	return internal.ChatId(request.Message.Chat.Id), internal.Text(request.Message.Text), nil
 }
 
-func (h *ChatBotHandler) SendMessage(chatId internal.ChatId, text string) error {
+func (h *ChatBotHandler) SendMessage(chatId internal.ChatId, text internal.Text) error {
 	type sendMessageBody struct {
 		ChatId internal.ChatId `json:"chat_id"`
-		Text   string          `json:"text"`
+		Text   internal.Text   `json:"text"`
 	}
 
 	msg := &sendMessageBody{
